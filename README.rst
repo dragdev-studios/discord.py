@@ -1,15 +1,9 @@
-discord.py
+discord.py - DragDev Flavour
 ==========
 
-.. image:: https://discord.com/api/guilds/336642139381301249/embed.png
-   :target: https://discord.gg/r3sSKJJ
+.. image:: https://discord.com/api/guilds/772980293929402389/embed.png
+   :target: https://discord.gg/YBNWw7nMGH
    :alt: Discord server invite
-.. image:: https://img.shields.io/pypi/v/discord.py.svg
-   :target: https://pypi.python.org/pypi/discord.py
-   :alt: PyPI version info
-.. image:: https://img.shields.io/pypi/pyversions/discord.py.svg
-   :target: https://pypi.python.org/pypi/discord.py
-   :alt: PyPI supported Python versions
 
 A modern, easy to use, feature-rich, and async ready API wrapper for Discord written in Python.
 
@@ -25,34 +19,17 @@ Installing
 
 **Python 3.8 or higher is required**
 
-To install the library without full voice support, you can just run the following command:
-
 .. code:: sh
 
-    # Linux/macOS
-    python3 -m pip install -U discord.py
-
-    # Windows
-    py -3 -m pip install -U discord.py
-
-Otherwise to get voice support you should run the following command:
-
-.. code:: sh
-
-    # Linux/macOS
-    python3 -m pip install -U "discord.py[voice]"
-
-    # Windows
-    py -3 -m pip install -U discord.py[voice]
-
-
-To install the development version, do the following:
-
-.. code:: sh
-
-    $ git clone https://github.com/Rapptz/discord.py
+    $ git clone https://github.com/dragdev-studios/discord.py
     $ cd discord.py
     $ python3 -m pip install -U .[voice]
+
+or
+
+.. code:: sh
+
+    $ pip install git+https://github.com/dragdev-studios/discord.py
 
 
 Optional Packages
