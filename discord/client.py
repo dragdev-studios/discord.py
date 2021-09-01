@@ -52,7 +52,7 @@ from .template import Template
 from .widget import Widget
 from .guild import Guild
 from .emoji import Emoji
-from .channel import _threaded_channel_factory, PartialMessageable
+from .channel import _threaded_channel_factory, PartialMessageable, TextChannel
 from .enums import ChannelType
 from .mentions import AllowedMentions
 from .errors import *
@@ -63,7 +63,7 @@ from .activity import ActivityTypes, BaseActivity, create_activity
 from .voice_client import VoiceClient
 from .http import HTTPClient
 from .state import ConnectionState
-from . import utils
+from . import utils, PartialEmoji, Reaction
 from .utils import MISSING
 from .object import Object
 from .backoff import ExponentialBackoff
@@ -253,6 +253,252 @@ class Client:
         if VoiceClient.warn_nacl:
             VoiceClient.warn_nacl = False
             _log.warning("PyNaCl is not installed, voice will NOT be supported")
+
+    # Ported from async <3
+
+    async def wait_for_message(
+            self,
+            timeout: float = None,
+            *,
+            author: Union[User, Member] = None,
+            channel: Union[TextChannel, DMChannel] = None,
+            content: str = None,
+            check: Callable[[Message], bool] = None
+    ) -> Optional[Message]:
+        """|coro|
+
+        Waits for a message reply from Discord. This could be seen as another
+        :func:`discord.on_message` event outside of the actual event. This could
+        also be used for follow-ups and easier user interactions.
+
+        The keyword arguments passed into this function are combined using the logical and
+        operator. The ``check`` keyword argument can be used to pass in more complicated
+        checks and must be a regular function (not a coroutine).
+
+        The ``timeout`` parameter is passed into `asyncio.wait_for`_. By default, it
+        does not timeout. Instead of throwing ``asyncio.TimeoutError`` the coroutine
+        catches the exception and returns ``None`` instead of a :class:`Message`.
+
+        If the ``check`` predicate throws an exception, then the exception is propagated.
+
+        This function returns the **first message that meets the requirements**.
+
+        .. _asyncio.wait_for: https://docs.python.org/3/library/asyncio-task.html#asyncio.wait_for
+
+        Examples
+        ----------
+
+        Basic example:
+
+        .. code-block:: python
+            :emphasize-lines: 5
+
+            @client.event
+            async def on_message(message):
+                if message.content.startswith('$greet'):
+                    await client.send_message(message.channel, 'Say hello')
+                    msg = await client.wait_for_message(author=message.author, content='hello')
+                    await client.send_message(message.channel, 'Hello.')
+
+        Asking for a follow-up question:
+
+        .. code-block:: python
+            :emphasize-lines: 6
+
+            @client.event
+            async def on_message(message):
+                if message.content.startswith('$start'):
+                    await client.send_message(message.channel, 'Type $stop 4 times.')
+                    for i in range(4):
+                        msg = await client.wait_for_message(author=message.author, content='$stop')
+                        fmt = '{} left to go...'
+                        await client.send_message(message.channel, fmt.format(3 - i))
+
+                    await client.send_message(message.channel, 'Good job!')
+
+        Advanced filters using ``check``:
+
+        .. code-block:: python
+            :emphasize-lines: 9
+
+            @client.event
+            async def on_message(message):
+                if message.content.startswith('$cool'):
+                    await client.send_message(message.channel, 'Who is cool? Type $name namehere')
+
+                    def check(msg):
+                        return msg.content.startswith('$name')
+
+                    message = await client.wait_for_message(author=message.author, check=check)
+                    name = message.content[len('$name'):].strip()
+                    await client.send_message(message.channel, '{} is cool indeed'.format(name))
+
+
+        Parameters
+        -----------
+        timeout : float
+            The number of seconds to wait before returning ``None``.
+        author : :class:`Member` or :class:`User`
+            The author the message must be from.
+        channel : :class:`Channel` or :class:`PrivateChannel` or :class:`Object`
+            The channel the message must be from.
+        content : str
+            The exact content the message must have.
+        check : function
+            A predicate for other complicated checks. The predicate must take
+            a :class:`Message` as its only parameter.
+
+        Returns
+        --------
+        :class:`Message`
+            The message that you requested for.
+        """
+
+        def predicate(message: Message):
+            result = True
+            if author is not None:
+                result = result and message.author == author
+            if channel is not None:
+                result = result and message.channel == channel
+            if content is not None:
+                result = result and message.content == content
+            if check is not None:
+                result = result and check(message)
+            return result
+
+        try:
+            return await self.wait_for(
+                "message",
+                check=predicate,
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            return
+
+    async def wait_for_reaction(
+            self,
+            emoji: Union[List[Union[Emoji, PartialEmoji, str]], Union[Emoji, PartialEmoji, str]] = None,
+            *, user: Union[User, Member] = None,
+            timeout: float = None,
+            message: Message = None,
+            check: Callable[[Reaction, Union[User, Member]], bool]
+    ) -> Optional[Tuple[Reaction, Union[User, Member]]]:
+        """|coro|
+
+        Waits for a message reaction from Discord. This is similar to :meth:`wait_for_message`
+        and could be seen as another :func:`on_reaction_add` event outside of the actual event.
+        This could be used for follow up situations.
+
+        Similar to :meth:`wait_for_message`, the keyword arguments are combined using logical
+        AND operator. The ``check`` keyword argument can be used to pass in more complicated
+        checks and must a regular function taking in two arguments, ``(reaction, user)``. It
+        must not be a coroutine.
+
+        The ``timeout`` parameter is passed into asyncio.wait_for. By default, it
+        does not timeout. Instead of throwing ``asyncio.TimeoutError`` the coroutine
+        catches the exception and returns ``None`` instead of a the ``(reaction, user)``
+        tuple.
+
+        If the ``check`` predicate throws an exception, then the exception is propagated.
+
+        The ``emoji`` parameter can be either a :class:`Emoji`, a ``str`` representing
+        an emoji, or a sequence of either type. If the ``emoji`` parameter is a sequence
+        then the first reaction emoji that is in the list is returned. If ``None`` is
+        passed then the first reaction emoji used is returned.
+
+        This function returns the **first reaction that meets the requirements**.
+
+        Examples
+        ---------
+
+        Basic Example:
+
+        .. code-block:: python
+
+            @client.event
+            async def on_message(message):
+                if message.content.startswith('$react'):
+                    msg = await client.send_message(message.channel, 'React with thumbs up or thumbs down.')
+                    res = await client.wait_for_reaction(['\N{THUMBS UP SIGN}', '\N{THUMBS DOWN SIGN}'], message=msg)
+                    await client.send_message(message.channel, '{0.user} reacted with {0.reaction.emoji}!'.format(res))
+
+        Checking for reaction emoji regardless of skin tone:
+
+        .. code-block:: python
+
+            @client.event
+            async def on_message(message):
+                if message.content.startswith('$react'):
+                    msg = await client.send_message(message.channel, 'React with thumbs up or thumbs down.')
+
+                    def check(reaction, user):
+                        e = str(reaction.emoji)
+                        return e.startswith(('\N{THUMBS UP SIGN}', '\N{THUMBS DOWN SIGN}'))
+
+                    res = await client.wait_for_reaction(message=msg, check=check)
+                    await client.send_message(message.channel, '{0.user} reacted with {0.reaction.emoji}!'.format(res))
+
+        Parameters
+        -----------
+        timeout: float
+            The number of seconds to wait before returning ``None``.
+        user: :class:`Member` or :class:`User`
+            The user the reaction must be from.
+        emoji: str or :class:`Emoji` or sequence
+            The emoji that we are waiting to react with.
+        message: :class:`Message`
+            The message that we want the reaction to be from.
+        check: function
+            A predicate for other complicated checks. The predicate must take
+            ``(reaction, user)`` as its two parameters, which ``reaction`` being a
+            :class:`Reaction` and ``user`` being either a :class:`User` or a
+            :class:`Member`.
+
+        Returns
+        --------
+        namedtuple
+            A namedtuple with attributes ``reaction`` and ``user`` similar to :func:`on_reaction_add`.
+        """
+
+        def predicate(reaction: Reaction, _user: Union[User, Member]):
+            result = True
+            if user is not None:
+                result = result and user == _user and type(user) == type(_user)
+            if emoji is not None:
+                if isinstance(emoji, (str, Emoji, PartialEmoji)):
+                    result = result and str(reaction.emoji) == str(emoji)
+                else:
+                    result = result and reaction.emoji in emoji
+            if message is not None:
+                result = result and reaction.message.id == message.id
+            if check is not None:
+                result = result and check(reaction, _user)
+            return result
+        try:
+            return await self.wait_for(
+                "reaction_add",
+                check=predicate,
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            return
+
+    # Custom, new features (DDS)
+    def get_message(self, id: int) -> Optional[Message]:
+        """
+        Returns a message with the given ID.
+
+        Parameters
+        -----------
+        id: :class:`int`
+            The ID to search for.
+
+        Returns
+        --------
+        Optional[:class:`~discord.Message`]
+            The message or ``None`` if not found.
+        """
+        return utils.get(self.cached_messages, id=id)
 
     # internals
 
