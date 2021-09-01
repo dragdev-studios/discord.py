@@ -179,6 +179,10 @@ class BotBase(GroupMixin):
 
         await super().close()  # type: ignore
 
+    @discord.utils.copy_doc(discord.Client.close)
+    def logout(self) -> CoroFunc:
+        return self.close
+
     async def on_command_error(self, context: Context, exception: errors.CommandError) -> None:
         """|coro|
 
