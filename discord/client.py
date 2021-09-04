@@ -51,7 +51,6 @@ from .invite import Invite
 from .template import Template
 from .widget import Widget
 from .guild import Guild
-from .emoji import Emoji
 from .channel import _threaded_channel_factory, PartialMessageable, TextChannel
 from .enums import ChannelType
 from .mentions import AllowedMentions
@@ -63,7 +62,10 @@ from .activity import ActivityTypes, BaseActivity, create_activity
 from .voice_client import VoiceClient
 from .http import HTTPClient
 from .state import ConnectionState
-from . import utils, PartialEmoji, Reaction
+from . import utils
+from .partial_emoji import PartialEmoji
+from .reaction import Reaction
+from .emoji import Emoji
 from .utils import MISSING
 from .object import Object
 from .backoff import ExponentialBackoff
