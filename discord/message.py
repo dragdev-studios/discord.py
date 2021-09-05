@@ -275,6 +275,45 @@ class Attachment(Hashable):
         data = await self._http.get_from_cdn(url)
         return data
 
+    async def save_to_bytesio(self, *, use_cached: bool = False, file: io.BytesIO = None) -> io.BytesIO:
+        """|coro|
+
+        Converts this attachment into a :class:`BytesIO`, as an in-memory file interface.
+
+        .. versionadded:: 2.1
+
+        Parameters
+        ----------
+        use_cached: :class:`bool`
+            Whether to use :attr:`proxy_url` rather than :attr:`url` when downloading
+            the attachment. This will allow attachments to be saved after deletion
+            more often, compared to the regular URL which is generally deleted right
+            after the message is deleted. Note that this can still fail to download
+            deleted attachments if too much time has passed and it does not work
+            on some types of attachments.
+        file: Optional[:class:`BytesIO`]
+            The pre-existing :class:`BytesIO` to save to. If not supplied, this function creates one.
+
+        Raises
+        ------
+        HTTPException
+            Downloading the attachment failed.
+        Forbidden
+            You do not have permissions to access this attachment
+        NotFound
+            The attachment was deleted.
+
+        Returns
+        -------
+        :class:`BytesIO`
+            The contents of the attachment.
+        """
+        file = file or io.BytesIO()
+        file.write(await self.read(use_cached=True))
+        file.seek(0)
+
+        return file
+
     async def to_file(self, *, use_cached: bool = False, spoiler: bool = False) -> File:
         """|coro|
 

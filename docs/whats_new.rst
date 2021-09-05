@@ -11,6 +11,27 @@ Changelog
 This page keeps a detailed human friendly rendering of what's new and changed
 in specific versions.
 
+.. _vp2p1p0:
+
+v2.1.0
+------
+
+.. warning::
+    Only changes made to the dragdev fork are listed here. For a full list of 2.0 changes, go to the original repository
+
+New Features
+~~~~~~~~~~~~
+
+- Added :meth:`Client.wait_for_message` (ported from discord.py async)
+- Added :meth:`Client.wait_for_reaction` (ported from discord.py async)
+- Added :attr:`Colour.hex` (and consequently, :attr:`Color.hex`)
+- Re-added :meth:`Client.logout` for backwards compatibility
+
+Changes
+~~~~~~~
+
+- |commands| Added :obj:`guild_id` to :meth:`commands.guild_only`, to allow for exclusive guild access
+
 .. _vp1p7p3:
 
 v1.7.3

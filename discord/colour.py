@@ -94,7 +94,7 @@ class Colour:
         return not self.__eq__(other)
 
     def __str__(self) -> str:
-        return f"#{self.value:0>6x}"
+        return self.hex
 
     def __int__(self) -> int:
         return self.value
@@ -104,6 +104,13 @@ class Colour:
 
     def __hash__(self) -> int:
         return hash(self.value)
+
+    @property
+    def hex(self) -> str:
+        """:class:`str` Returns the hexadecimal representation of the colour.
+
+        .. versionadded:: 2.1.0"""
+        return f"#{self.value:0>6x}"
 
     @property
     def r(self) -> int:
@@ -122,7 +129,7 @@ class Colour:
 
     def to_rgb(self) -> Tuple[int, int, int]:
         """Tuple[:class:`int`, :class:`int`, :class:`int`]: Returns an (r, g, b) tuple representing the colour."""
-        return (self.r, self.g, self.b)
+        return self.r, self.g, self.b
 
     @classmethod
     def from_rgb(cls: Type[CT], r: int, g: int, b: int) -> CT:

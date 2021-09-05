@@ -2126,17 +2126,23 @@ def dm_only() -> Callable[[T], T]:
     return check(predicate)
 
 
-def guild_only() -> Callable[[T], T]:
+def guild_only(guild_id: int = None, /) -> Callable[[T], T]:
     """A :func:`.check` that indicates this command must only be used in a
     guild context only. Basically, no private messages are allowed when
     using the command.
 
     This check raises a special exception, :exc:`.NoPrivateMessage`
     that is inherited from :exc:`.CheckFailure`.
+
+    .. versionchanged:: 2.1
+        Added :param:`guild_only`, which allows for exclusive access to the provided guild ID.
+        By default, this is ``None``, which means all guilds can use it.
     """
 
     def predicate(ctx: Context) -> bool:
         if ctx.guild is None:
+            raise NoPrivateMessage()
+        if guild_id is not None and ctx.guild.id != guild_id:
             raise NoPrivateMessage()
         return True
 

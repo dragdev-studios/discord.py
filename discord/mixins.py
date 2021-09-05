@@ -41,6 +41,9 @@ class EqualityComparable:
             return other.id != self.id
         return True
 
+    def __int__(self) -> int:
+        return self.id
+
 
 class Hashable(EqualityComparable):
     __slots__ = ()
