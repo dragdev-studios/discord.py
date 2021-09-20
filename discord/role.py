@@ -30,6 +30,7 @@ from .errors import InvalidArgument
 from .colour import Colour
 from .mixins import Hashable
 from .utils import snowflake_time, _get_as_snowflake, MISSING
+from .asset import Asset
 
 __all__ = (
     "RoleTags",
@@ -170,6 +171,9 @@ class Role(Hashable):
         Indicates if the role can be mentioned by users.
     tags: Optional[:class:`RoleTags`]
         The role tags associated with this role.
+    icon: Optional[:class:`Asset`]
+        The icon associated with this role. Can be ``None`` if the guild does not have 7 boosts,
+        or the guild did not set an icon for this role.
     """
 
     __slots__ = (
@@ -183,6 +187,7 @@ class Role(Hashable):
         "hoist",
         "guild",
         "tags",
+        "icon",
         "_state",
     )
 
@@ -242,12 +247,27 @@ class Role(Hashable):
         self.hoist: bool = data.get("hoist", False)
         self.managed: bool = data.get("managed", False)
         self.mentionable: bool = data.get("mentionable", False)
+        self.icon: Optional[Asset]
         self.tags: Optional[RoleTags]
 
         try:
             self.tags = RoleTags(data["tags"])
         except KeyError:
             self.tags = None
+
+        try:
+            icon = data["icon"]
+            if icon:
+                self.icon = Asset._from_icon(
+                    self._state,
+                    self.id,
+                    icon,
+                    "role"
+                )
+            else:
+                self.icon = None
+        except KeyError:
+            self.icon = None
 
     def is_default(self) -> bool:
         """:class:`bool`: Checks if the role is the default role."""
